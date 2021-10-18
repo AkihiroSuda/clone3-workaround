@@ -48,18 +48,23 @@ Newer container engines DO NOT need `clone3-workaround`.
 Also note that some distributor vendors have already cherry-picked the Docker 20.10.10 patch to older versions.
 e.g., [`docker.io/20.10.7-0ubuntu5~20.04.1`](https://bugs.launchpad.net/cloud-images/+bug/1943049) DO NOT need `clone3-workaround`, although its version number is smaller than `20.10.10`.
 
-## Build
+## Install
 
-Run `make` to build `clone3-workaround` binary.
+Pre-built binary is available at https://github.com/AkihiroSuda/clone3-workaround/releases .
 
-Dependencies:
+To build `clone3-workaround` from the source, run `make`.
+
+Build dependencies:
 - Go
 - libseccomp-dev
 
 ## Usage
 
+### `docker run`
+
 Mount or copy `clone3-workaround` to the container, and run `clone3-workaround COMMAND [ARGUMENTS...]` to run the command with the workaround.
 
+Example: Ubuntu 21.10
 ```console
 $ docker run -it --rm -v $(pwd)/clone3-workaround:/clone3-workaround ubuntu:21.10 /clone3-workaround bash
 root@490fd2f29a88:/# apt-get update
@@ -75,6 +80,7 @@ Unpacking hello (2.10-2ubuntu3) ...
 Setting up hello (2.10-2ubuntu3) ...
 ```
 
+Example: Fedora 35
 ```console
 $ docker run -it --rm -v $(pwd)/clone3-workaround:/clone3-workaround fedora:35 /clone3-workaround bash
 [root@c699df1e7bd4 /]# dnf install -y hello
@@ -84,4 +90,26 @@ Installed:
   hello-2.10-6.fc35.x86_64                                                                                          info-6.8-2.fc35.x86_64
 
 Complete!
+```
+
+### `docker build`
+
+Copy the `clone3-workaround` binary to the image, and specify `SHELL ["/clone3-workaround","/bin/sh", "-c"]` in the Dockerfile.
+
+Example: Ubuntu 21.10
+```dockerfile
+FROM ubuntu:21.10
+ADD https://github.com/AkihiroSuda/clone3-workaround/releases/download/v1.0.0/clone3-workaround.x86_64 /clone3-workaround
+RUN chmod 755 /clone3-workaround
+SHELL ["/clone3-workaround","/bin/sh", "-c"]
+RUN apt-get update && apt-get install -y hello
+```
+
+Example: Fedora 35
+```dockerfile
+FROM fedora:35
+ADD https://github.com/AkihiroSuda/clone3-workaround/releases/download/v1.0.0/clone3-workaround.x86_64 /clone3-workaround
+RUN chmod 755 /clone3-workaround
+SHELL ["/clone3-workaround","/bin/sh", "-c"]
+RUN dnf install -y hello
 ```
