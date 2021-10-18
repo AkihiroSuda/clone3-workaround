@@ -1,0 +1,35 @@
+name: test
+
+on:
+  push:
+    branches:
+      - master
+      - 'release/**'
+  pull_request:
+env:
+  GO111MODULE: on
+jobs:
+  test:
+    runs-on: ubuntu-20.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.17.x
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libseccomp-dev
+      - name: Make artifacts
+        run: make artifacts
+      - name: "Test (Ubuntu 21.10 on Docker 20.10.9)"
+        run: |
+          sudo mkdir -p /tmp/var-run
+          sudo docker run -d --name dind -v /tmp/var-run:/var/run --privileged docker:20.10.9-dind
+          sleep 30
+          sudo DOCKER_HOST=unix:///tmp/var-run/docker.sock docker info
+          sudo DOCKER_HOST=unix:///tmp/var-run/docker.sock docker run -d --name ubuntu-21.10 ubuntu:21.10 sleep infinity
+          # sudo DOCKER_HOST=unix:///tmp/var-run/docker.sock docker exec ubuntu-21.10 sh -euxc 'echo "this should fail, but does not fail on GHA? (kernel 5.8.0-1042-azure)" && apt-get update && apt-get install -y hello' && exit 1
+          sudo DOCKER_HOST=unix:///tmp/var-run/docker.sock docker cp $(pwd)/_artifacts/clone3-workaround.x86_64 ubuntu-21.10:/clone3-workaround
+          sudo DOCKER_HOST=unix:///tmp/var-run/docker.sock docker exec ubuntu-21.10 /clone3-workaround sh -euxc 'echo "should pass" && apt-get update && apt-get install -y hello'
